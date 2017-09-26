@@ -19,7 +19,7 @@ data ItemType = Channel
               | Group
               | File
               | FileComments
-                 deriving (Show)
+              deriving (Show)
 
 instance FromJSON ItemType where
   parseJSON = withText "ItemType" $ \t -> do
@@ -335,7 +335,7 @@ instance FromJSON SlackEvent where
                                        <$> o .: "user"
                                        <*> o .: "channel"
                                        <*> o .: "channel_type"
-                                       <*> o .: "inviter"
+                                       <*> o .:? "inviter"
           "member_left_channel"     -> MemberLeftChannel <$> o .: "user" <*> o .: "channel" <*> o .: "channel_type"
           "message"                 -> parseMessageEvent o
           _                         -> fail $ "Unknown event type: " ++ eventType
@@ -343,15 +343,15 @@ instance FromJSON SlackEvent where
 
 parseMessageEvent :: Object -> Parser SlackEvent
 parseMessageEvent o = do
-  subtype <- (o .: "subtype" :: Parser (Maybe String))
+  subtype <- (o .:? "subtype" :: Parser (Maybe String))
   case subtype of
     Nothing                  -> Message
                                 <$> o .: "ts"
                                 <*> o .: "user"
                                 <*> o .: "channel"
                                 <*> o .: "text"
-                                <*> o .: "edited"
-                                <*> o .: "attachments"
+                                <*> o .:? "edited"
+                                <*> o .:? "attachments"
     Just "bot_message"       -> BotMessage
                                 <$> o .: "ts"
                                 <*> o .: "text"
@@ -366,7 +366,7 @@ parseMessageEvent o = do
                                 <$> o .: "ts"
                                 <*> o .: "text"
                                 <*> o .: "user"
-                                <*> o .: "inviter"
+                                <*> o .:? "inviter"
     Just "channel_leave"     -> ChannelLeaveMessage
                                 <$> o .: "ts"
                                 <*> o .: "user"
