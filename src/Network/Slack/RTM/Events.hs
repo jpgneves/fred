@@ -113,13 +113,19 @@ data SlackEvent = AccountsChanged
                 | ManualPresenceChange { _sePresence :: String }
                 | MemberJoinedChannel { _seUser        :: SlackId
                                       , _seChannelId   :: SlackId
-                                      , _seItemType :: ItemType
+                                      , _seItemType    :: ItemType
                                       , _seInviter     :: Maybe SlackId
                                       }
                 | MemberLeftChannel { _seUser        :: SlackId
                                     , _seChannelId   :: SlackId
                                     , _seChannelType :: ItemType
                                     }
+                | Message { _seTs        :: String
+                          , _seUser      :: SlackId
+                          , _seChannelId :: SlackId
+                          , _seText      :: String
+                          , _seEdited    :: EditInfo
+                          }
                 | BotMessage { _seTs       :: String
                              , _seText     :: String
                              , _seBotId    :: SlackId
@@ -310,70 +316,85 @@ instance FromJSON SlackEvent where
 
 parseMessageEvent :: Object -> Parser SlackEvent
 parseMessageEvent o = do
-  subtype <- (o .: "subtype" :: Parser String)
+  subtype <- (o .: "subtype" :: Parser (Maybe String))
   case subtype of
-    "bot_message"       -> BotMessage
-                           <$> o .: "ts"
-                           <*> o .: "text"
-                           <*> o .: "bot_id"
-                           <*> o .: "username"
-                           <*> o .: "icons"
-    "channel_archive"   -> ChannelArchiveMessage
-                           <$> o .: "ts"
-                           <*> o .: "user"
-                           <*> o .: "text"
-    "channel_join"      -> ChannelJoinMessage
-                           <$> o .: "ts"
-                           <*> o .: "text"
-                           <*> o .: "user"
-                           <*> o .: "inviter"
-    "channel_leave"     -> ChannelLeaveMessage
-                           <$> o .: "ts"
-                           <*> o .: "user"
-                           <*> o .: "text"
-    "channel_name"      -> ChannelNameMessage
-                           <$> o .: "ts"
-                           <*> o .: "user"
-                           <*> o .: "text"
-                           <*> o .: "old_name"
-                           <*> o .: "name"
-    "channel_purpose"   -> ChannelPurposeMessage
-                           <$> o .: "ts"
-                           <*> o .: "user"
-                           <*> o .: "text"
-                           <*> o .: "purpose"
-    "channel_topic"     -> ChannelTopicMessage
-                           <$> o .: "ts"
-                           <*> o .: "user"
-                           <*> o .: "text"
-                           <*> o .: "topic"
-    "channel_unarchive" -> ChannelUnarchiveMessage
-                           <$> o .: "ts"
-                           <*> o .: "user"
-                           <*> o .: "text"
-    "file_comment"      -> FileCommentMessage
-                           <$> o .: "ts"
-                           <*> o .: "user"
-                           <*> o .: "text"
-                           <*> o .: "file"
-                           <*> o .: "comment"
-    "file_mention"      -> undefined
-    "filed_share"       -> undefined
-    "group_archive"     -> undefined
-    "group_join"        -> undefined
-    "group_leave"       -> undefined
-    "group_name"        -> undefined
-    "group_purpose"     -> undefined
-    "group_topic"       -> undefined
-    "group_unarchive"   -> undefined
-    "me_message"        -> undefined
-    "message_changed"   -> undefined
-    "message_deleted"   -> undefined
-    "message_replied"   -> undefined
-    "pinned_item"       -> undefined
-    "reply_broadcast"   -> undefined
-    "unpinned_item"     -> undefined
-    _                   -> fail $ "Unknown message subtype: " ++ subtype
+    Nothing                  -> Message
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "channel"
+                                <*> o .: "text"
+                                <*> o .: "edited"
+    Just "bot_message"       -> BotMessage
+                                <$> o .: "ts"
+                                <*> o .: "text"
+                                <*> o .: "bot_id"
+                                <*> o .: "username"
+                                <*> o .: "icons"
+    Just "channel_archive"   -> ChannelArchiveMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+    Just "channel_join"      -> ChannelJoinMessage
+                                <$> o .: "ts"
+                                <*> o .: "text"
+                                <*> o .: "user"
+                                <*> o .: "inviter"
+    Just "channel_leave"     -> ChannelLeaveMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+    Just "channel_name"      -> ChannelNameMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+                                <*> o .: "old_name"
+                                <*> o .: "name"
+    Just "channel_purpose"   -> ChannelPurposeMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+                                <*> o .: "purpose"
+    Just "channel_topic"     -> ChannelTopicMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+                                <*> o .: "topic"
+    Just "channel_unarchive" -> ChannelUnarchiveMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+    Just "file_comment"      -> FileCommentMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+                                <*> o .: "file"
+                                <*> o .: "comment"
+    Just "file_mention"      -> FileMentionMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+                                <*> o .: "file"
+    Just "file_share"        -> FileShareMessage
+                                <$> o .: "ts"
+                                <*> o .: "user"
+                                <*> o .: "text"
+                                <*> o .: "file"
+                                <*> o .: "upload"
+--  Just "group_archive"     -> undefined
+--  Just "group_join"        -> undefined
+--  Just "group_leave"       -> undefined
+--  Just "group_name"        -> undefined
+--  Just "group_purpose"     -> undefined
+--  Just "group_topic"       -> undefined
+--  Just "group_unarchive"   -> undefined
+--  Just "me_message"        -> undefined
+--  Just "message_changed"   -> undefined
+--  Just "message_deleted"   -> undefined
+--  Just "message_replied"   -> undefined
+--  Just "pinned_item"       -> undefined
+--  Just "reply_broadcast"   -> undefined
+--  Just "unpinned_item"     -> undefined
+    Just s                   -> fail $ "Unknown message subtype: " ++ s
 
 data BotInfo = BotInfo { _biId    :: SlackId
                        , _biAppId :: SlackId
