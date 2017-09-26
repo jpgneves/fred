@@ -75,13 +75,13 @@ makeWSSClient SlackAuthResponse { url } = do
     Nothing ->
       return ()
 
-authenticate :: T.Text -> IO (Maybe SlackAuthResponse)
+authenticate :: String -> IO (Maybe SlackAuthResponse)
 authenticate apiKey = do
-  let opts = defaults & param "token" .~ [apiKey]
+  let opts = defaults & param "token" .~ [T.pack apiKey]
   r <- getWith opts "http://slack.com/api/rtm.connect"
   return $ decode =<< (r ^? responseBody)
 
-connect :: T.Text -> IO ()
+connect :: String -> IO ()
 connect apiKey = do
   result <- authenticate apiKey
   case result of

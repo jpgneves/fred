@@ -1,28 +1,34 @@
 {-# LANGUAGE DeriveGeneric #-}
 module Main where
 
-import Data.Aeson
-import qualified Data.Text as T
-import qualified Data.Yaml as Y
-import GHC.Generics
+import Data.Semigroup ((<>))
 import Network.Slack.Client
-import System.Environment
+import Options.Applicative
 
-data FredConfig = FredConfig { apiKey :: T.Text
-                             , name   :: T.Text
-                             }
-                deriving (Eq, Show, Generic)
+data Flags = Flags { apiKey :: String
+                   , name   :: String
+                   }
+             deriving (Show)
 
-instance FromJSON FredConfig
+parseFlags :: Parser Flags
+parseFlags = Flags
+  <$> strOption (long "apiKey"
+                 <> metavar "APIKEY"
+                 <> help "Slack API Key"
+                )
+  <*> strOption (long "name"
+                 <> metavar "NAME"
+                 <> showDefault
+                 <> value "fred"
+                 <> help "Display name for the bot"
+                )
 
-readFredConfig :: FilePath -> IO (Either Y.ParseException FredConfig)
-readFredConfig = Y.decodeFileEither
+start :: Flags -> IO ()
+start (Flags apiKey name) = do
+  connect apiKey
 
 main :: IO ()
-main = do
-  (f:_) <- getArgs
-  config <- readFredConfig f
-  case config of
-    Left e -> putStrLn $ "Failed to read config: " ++ (show e)
-    Right c -> do
-      connect (apiKey c)
+main = execParser opts >>= start
+  where opts = info (parseFlags <**> helper) (fullDesc
+                                             <> header "fred - A Slack bot in Haskell"
+                                             )
