@@ -120,11 +120,12 @@ data SlackEvent = AccountsChanged
                                     , _seChannelId   :: SlackId
                                     , _seChannelType :: ItemType
                                     }
-                | Message { _seTs        :: String
-                          , _seUser      :: SlackId
-                          , _seChannelId :: SlackId
-                          , _seText      :: String
-                          , _seEdited    :: EditInfo
+                | Message { _seTs          :: String
+                          , _seUser        :: SlackId
+                          , _seChannelId   :: SlackId
+                          , _seText        :: String
+                          , _seEdited      :: Maybe EditInfo
+                          , _seAttachments :: Maybe [Attachment]
                           }
                 | BotMessage { _seTs       :: String
                              , _seText     :: String
@@ -248,7 +249,7 @@ data SlackEvent = AccountsChanged
                                         , _seUser        :: SlackId
                                         , _seChannelId   :: SlackId
                                         , _seEventTs     :: String
-                                        , _seAttachments :: [Object]
+                                        , _seAttachments :: Maybe [Attachment]
                                         }
                 | UnpinnedItemMessage { _seTs        :: String
                                       , _seUser      :: SlackId
@@ -257,6 +258,32 @@ data SlackEvent = AccountsChanged
                                       , _seItemType  :: ItemType
                                       , _seItem      :: String
                                       }
+                | PinAdded
+                | PinRemoved
+                | PrefChange
+                | PresenceChange
+                | PresenceSub
+                | ReactionAdded
+                | ReactionRemoved
+                | ReconnectUrl
+                | StarAdded
+                | StarRemoved
+                | SubteamCreated
+                | SubteamMembersChanged
+                | SubteamSelfAdded
+                | SubteamSelfRemoved
+                | SubteamUpdated
+                | TeamDomainChange
+                | TeamJoin
+                | TeamMigrationStarted
+                | TeamPlanChange
+                | TeamPrefChange
+                | TeamProfileChange
+                | TeamProfileDelete
+                | TeamProfileReorder
+                | TeamRename
+                | UserChange
+                | UserTyping
                 deriving Show
 
 instance FromJSON SlackEvent where
@@ -324,6 +351,7 @@ parseMessageEvent o = do
                                 <*> o .: "channel"
                                 <*> o .: "text"
                                 <*> o .: "edited"
+                                <*> o .: "attachments"
     Just "bot_message"       -> BotMessage
                                 <$> o .: "ts"
                                 <*> o .: "text"
@@ -493,10 +521,40 @@ data MessageInfo = MessageInfo { _mChannelId :: SlackId
                                , _mTs        :: String
                                , _mEdited    :: Maybe EditInfo
                                , _mIsStarred :: Maybe Bool
-                               , _mPinnedTo  :: Maybe [SlackId]
+                               , _mPinned_to :: Maybe [SlackId]
                                , _mReactions :: Maybe [Reaction]
                                }
                  deriving (Generic, Show)
 
 instance FromJSON MessageInfo where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_m" }
+
+data Attachment = Attachment { _aFallback    :: String
+                             , _aColor       :: String
+                             , _aPretext     :: String
+                             , _aAuthor_name :: String
+                             , _aAuthor_link :: String
+                             , _aAuthor_icon :: String
+                             , _aTitle       :: String
+                             , _aTitle_link  :: String
+                             , _aText        :: String
+                             , _aFields      :: [Field]
+                             , _aImage_url   :: String
+                             , _aThumb_url   :: String
+                             , _aFooter      :: String
+                             , _aFooter_icon :: String
+                             , _aTs          :: Int
+                             }
+                  deriving (Generic, Show)
+
+instance FromJSON Attachment where
+  parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_a" }
+
+data Field = Field { _fTitle :: String
+                   , _fValue :: String
+                   , _fShort :: Bool
+                   }
+           deriving (Generic, Show)
+
+instance FromJSON Field where
+  parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_f" }
