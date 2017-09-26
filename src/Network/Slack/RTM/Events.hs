@@ -11,10 +11,20 @@ import GHC.Generics
 dropPrefix :: String -> String -> String
 dropPrefix prefix = (drop (length prefix)) . (map toLower) -- For sure there's a better way :)
 
-newtype SlackId = SlackId String deriving (Eq, Generic, Show)
+newtype UserId = UserId String deriving (Eq, Generic, Show)
 
-instance FromJSON SlackId
-instance ToJSON SlackId
+instance FromJSON UserId
+instance ToJSON UserId
+
+newtype ChannelId = ChannelId String deriving (Eq, Generic, Show)
+
+instance FromJSON ChannelId
+instance ToJSON ChannelId
+
+newtype FileId = FileId String deriving (Eq, Generic, Show)
+
+instance FromJSON FileId
+instance ToJSON FileId
 
 data ItemType = Channel
               | Group
@@ -35,29 +45,29 @@ data SlackEvent = AccountsChanged
                            }
                 | BotChanged { _seBot  :: BotInfo
                              }
-                | ChannelArchive { _seChannelId :: SlackId
-                                 , _seUser      :: SlackId
+                | ChannelArchive { _seChannelId :: ChannelId
+                                 , _seUser      :: UserId
                                  }
                 | ChannelCreated { _seChannel   :: ChannelInfo }
-                | ChannelDeleted { _seChannelId :: SlackId }
+                | ChannelDeleted { _seChannelId :: ChannelId }
                 | ChannelHistoryChanged { _seLatest  :: String
                                         , _seTs      :: String
                                         , _seEventTs :: String
                                         }
-                | ChannelJoined { _seChannelId :: SlackId }
-                | ChannelLeft { _seChannelId :: SlackId }
-                | ChannelMarked { _seChannelId :: SlackId
+                | ChannelJoined { _seChannelId :: ChannelId }
+                | ChannelLeft { _seChannelId :: ChannelId }
+                | ChannelMarked { _seChannelId :: ChannelId
                                 , _seTs        :: String
                                 }
                 | ChannelRename { _seChannelRename :: ChannelRenameInfo }
-                | ChannelUnarchive { _seChannelId :: SlackId
-                                   , _seUser      :: SlackId
+                | ChannelUnarchive { _seChannelId :: ChannelId
+                                   , _seUser      :: UserId
                                    }
                 | CommandsChanged { _seEventTs :: String }
-                | DndUpdated { _seUser      :: SlackId
+                | DndUpdated { _seUser      :: UserId
                              , _seDndStatus :: DndStatus
                              }
-                | DndUpdatedUser { _seUser      :: SlackId
+                | DndUpdatedUser { _seUser      :: UserId
                                  , _seDndStatus :: DndStatus
                                  }
                 | EmailDomainChanged { _seEmailDomain :: String
@@ -75,187 +85,187 @@ data SlackEvent = AccountsChanged
                              }
                 | FileChange { _seFile :: FileInfo }
                 | Goodbye
-                | GroupArchive { _seChannelId :: SlackId }
-                | GroupClose { _seUser      :: SlackId
-                             , _seChannelId :: SlackId
+                | GroupArchive { _seChannelId :: ChannelId }
+                | GroupClose { _seUser      :: UserId
+                             , _seChannelId :: ChannelId
                              }
                 | GroupHistoryChanged { _seLatest  :: String
                                       , _seTs      :: String
                                       , _seEventTs :: String
                                       }
-                | GroupJoined { _seGroupId :: SlackId }
-                | GroupLeft { _seGroupId :: SlackId }
-                | GroupMarked { _seGroupId :: SlackId
+                | GroupJoined { _seGroupId :: ChannelId }
+                | GroupLeft { _seGroupId :: ChannelId }
+                | GroupMarked { _seGroupId :: ChannelId
                               , _seTs      :: String
                               }
-                | GroupOpen { _seUser    :: SlackId
-                            , _seGroupId :: SlackId }
+                | GroupOpen { _seUser    :: UserId
+                            , _seGroupId :: ChannelId }
                 | GroupRename { _seGroupRename :: ChannelRenameInfo }
-                | GroupUnarchive { _seChannelId :: SlackId
-                                 , _seUser      :: SlackId
+                | GroupUnarchive { _seChannelId :: ChannelId
+                                 , _seUser      :: UserId
                                  }
                 | Hello
-                | IMClose { _seUser      :: SlackId
-                          , _seChannelId :: SlackId
+                | IMClose { _seUser      :: UserId
+                          , _seChannelId :: ChannelId
                           }
-                | IMCreated { _seUser    :: SlackId
+                | IMCreated { _seUser    :: UserId
                             , _seChannel :: ChannelInfo
                             }
                 | IMHistoryChanged { _seLatest  :: String
                                    , _seTs      :: String
                                    , _seEventTs :: String
                                    }
-                | IMMarked { _seChannelId :: SlackId
+                | IMMarked { _seChannelId :: ChannelId
                            , _seTs :: String
                            }
-                | IMOpen { _seUser      :: SlackId
-                         , _seChannelId :: SlackId
+                | IMOpen { _seUser      :: UserId
+                         , _seChannelId :: ChannelId
                          }
                 | ManualPresenceChange { _sePresence :: String }
-                | MemberJoinedChannel { _seUser        :: SlackId
-                                      , _seChannelId   :: SlackId
+                | MemberJoinedChannel { _seUser        :: UserId
+                                      , _seChannelId   :: ChannelId
                                       , _seItemType    :: ItemType
-                                      , _seInviter     :: Maybe SlackId
+                                      , _seInviter     :: Maybe UserId
                                       }
-                | MemberLeftChannel { _seUser        :: SlackId
-                                    , _seChannelId   :: SlackId
+                | MemberLeftChannel { _seUser        :: UserId
+                                    , _seChannelId   :: ChannelId
                                     , _seChannelType :: ItemType
                                     }
                 | Message { _seTs          :: String
-                          , _seUser        :: SlackId
-                          , _seChannelId   :: SlackId
+                          , _seUser        :: UserId
+                          , _seChannelId   :: ChannelId
                           , _seText        :: String
                           , _seEdited      :: Maybe EditInfo
                           , _seAttachments :: Maybe [Attachment]
                           }
                 | BotMessage { _seTs       :: String
                              , _seText     :: String
-                             , _seBotId    :: SlackId
+                             , _seBotId    :: UserId
                              , _seUsername :: String
                              , _seIcons    :: [String]
                              }
                 | ChannelArchiveMessage { _seTs   :: String
-                                        , _seUser :: SlackId
+                                        , _seUser :: UserId
                                         , _seText :: String
                                         }
                 | ChannelJoinMessage { _seTs      :: String
-                                     , _seUser    :: SlackId
+                                     , _seUser    :: UserId
                                      , _seText    :: String
-                                     , _seInviter :: Maybe SlackId
+                                     , _seInviter :: Maybe UserId
                                      }
                 | ChannelLeaveMessage { _seTs   :: String
-                                      , _seUser :: SlackId
+                                      , _seUser :: UserId
                                       , _seText :: String
                                       }
                 | ChannelNameMessage { _seTs      :: String
-                                     , _seUser    :: SlackId
+                                     , _seUser    :: UserId
                                      , _seText    :: String
                                      , _seOldName :: String
                                      , _seName    :: String
                                      }
                 | ChannelPurposeMessage { _seTs      :: String
-                                        , _seUser    :: SlackId
+                                        , _seUser    :: UserId
                                         , _seText    :: String
                                         , _sePurpose :: String
                                         }
                 | ChannelTopicMessage { _seTs    :: String
-                                      , _seUser  :: SlackId
+                                      , _seUser  :: UserId
                                       , _seText  :: String
                                       , _seTopic :: String
                                       }
                 | ChannelUnarchiveMessage { _seTs   :: String
-                                          , _seUser :: SlackId
+                                          , _seUser :: UserId
                                           , _seText :: String
                                           }
                 | FileCommentMessage { _seTs      :: String
-                                     , _seUser    :: SlackId
+                                     , _seUser    :: UserId
                                      , _seText    :: String
                                      , _seFile    :: FileInfo
                                      , _seComment :: Object
                                      }
                 | FileMentionMessage { _seTs   :: String
-                                     , _seUser :: SlackId
+                                     , _seUser :: UserId
                                      , _seText :: String
                                      , _seFile :: FileInfo
                                      }
                 | FileShareMessage { _seTs     :: String
-                                   , _seUser   :: SlackId
+                                   , _seUser   :: UserId
                                    , _seText   :: String
                                    , _seFile   :: FileInfo
                                    , _seUpload :: Bool
                                    }
                 | GroupArchiveMessage { _seTs      :: String
-                                      , _seUser    :: SlackId
+                                      , _seUser    :: UserId
                                       , _seText    :: String
-                                      , _seMembers :: [SlackId]
+                                      , _seMembers :: [UserId]
                                       }
                 | GroupJoinMessage { _seTs   :: String
-                                   , _seUser :: SlackId
+                                   , _seUser :: UserId
                                    , _seText :: String
                                    }
                 | GroupLeaveMessage { _seTs   :: String
-                                    , _seUser :: SlackId
+                                    , _seUser :: UserId
                                     , _seText :: String
                                     }
                 | GroupNameMessage { _seTs      :: String
-                                   , _seUser    :: SlackId
+                                   , _seUser    :: UserId
                                    , _seText    :: String
                                    , _seOldName :: String
                                    , _seName    :: String
                                    }
                 | GroupPurposeMessage { _seTs      :: String
-                                      , _seUser    :: SlackId
+                                      , _seUser    :: UserId
                                       , _seText    :: String
                                       , _sePurpose :: String
                                       }
                 | GroupTopicMessage { _seTs    :: String
-                                    , _seUser  :: SlackId
+                                    , _seUser  :: UserId
                                     , _seText  :: String
                                     , _seTopic :: String
                                     }
                 | GroupUnarchiveMessage { _seTs   :: String
-                                        , _seUser :: SlackId
+                                        , _seUser :: UserId
                                         , _seText :: String
                                         }
                 | MeMessage { _seTs        :: String
-                            , _seUser      :: SlackId
+                            , _seUser      :: UserId
                             , _seText      :: String
-                            , _seChannelId :: SlackId
+                            , _seChannelId :: ChannelId
                             }
                 | MessageChanged { _seTs      :: String
-                                 , _seUser    :: SlackId
+                                 , _seUser    :: UserId
                                  , _seText    :: String
                                  , _seHidden  :: Bool
                                  , _seMessage :: MessageInfo
                                  }
                 | MessageDeleted { _seTs        :: String
-                                 , _seChannelId :: SlackId
+                                 , _seChannelId :: ChannelId
                                  , _seDeletedTs :: String
                                  , _seHidden    :: Bool
                                  }
                 | MessageReplied { _seTs        :: String
-                                 , _seChannelId :: SlackId
+                                 , _seChannelId :: ChannelId
                                  , _seEventTs   :: String
                                  , _seHidden    :: Bool
                                  , _seMessage   :: MessageInfo
                                  }
                 | PinnedItemMessage { _seTs        :: String
-                                    , _seUser      :: SlackId
+                                    , _seUser      :: UserId
                                     , _seText      :: String
-                                    , _seChannelId :: SlackId
+                                    , _seChannelId :: ChannelId
                                     , _seItemType  :: ItemType
                                     , _seItem      :: String
                                     }
                 | ReplyBroadcastMessage { _seTs          :: String
-                                        , _seUser        :: SlackId
-                                        , _seChannelId   :: SlackId
+                                        , _seUser        :: UserId
+                                        , _seChannelId   :: ChannelId
                                         , _seEventTs     :: String
                                         , _seAttachments :: Maybe [Attachment]
                                         }
                 | UnpinnedItemMessage { _seTs        :: String
-                                      , _seUser      :: SlackId
+                                      , _seUser      :: UserId
                                       , _seText      :: String
-                                      , _seChannelId :: SlackId
+                                      , _seChannelId :: ChannelId
                                       , _seItemType  :: ItemType
                                       , _seItem      :: String
                                       }
@@ -425,8 +435,8 @@ parseMessageEvent o = do
 --  Just "unpinned_item"     -> undefined
     Just s                   -> fail $ "Unknown message subtype: " ++ s
 
-data BotInfo = BotInfo { _biId    :: SlackId
-                       , _biAppId :: SlackId
+data BotInfo = BotInfo { _biId    :: UserId
+                       , _biAppId :: UserId
                        , _biName  :: String
                        , _biIcons :: M.Map String String
                        }
@@ -435,17 +445,17 @@ data BotInfo = BotInfo { _biId    :: SlackId
 instance FromJSON BotInfo where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_bi" }
 
-data ChannelInfo = ChannelInfo { _ciId      :: SlackId 
+data ChannelInfo = ChannelInfo { _ciId      :: ChannelId 
                                , _ciName    :: String
                                , _ciCreated :: Int -- TODO: Use proper datetime type
-                               , _ciCreator :: SlackId
+                               , _ciCreator :: UserId
                                }
                                deriving (Generic, Show)
 
 instance FromJSON ChannelInfo where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_ci" }
 
-data ChannelRenameInfo = ChannelRenameInfo { _criId      :: SlackId
+data ChannelRenameInfo = ChannelRenameInfo { _criId      :: ChannelId
                                            , _criName    :: String
                                            , _criCreated :: Int -- TODO: Use proper datetime type
                                            }
@@ -465,7 +475,7 @@ data DndStatus = DndStatus { _dsDnd_enabled       :: Bool
 instance FromJSON DndStatus where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_ds" }
 
-data FileInfo = FileInfo { _fiId        :: SlackId
+data FileInfo = FileInfo { _fiId        :: FileId
                          , _fiCreated   :: Int -- TODO: Use proper datetime type
                          , _fiTimestamp :: Int -- TODO: Use proper datetime type
                          , _fiName      :: Maybe String
@@ -473,7 +483,7 @@ data FileInfo = FileInfo { _fiId        :: SlackId
                          , _fiMimetype  :: String
                          , _fiFiletype  :: String
                          , _fiPretty_type :: String
-                         , _fiUser        :: SlackId
+                         , _fiUser        :: UserId
                          , _fiMode        :: String
                          , _fiEditable    :: Bool
                          , _fiIs_external :: Bool
@@ -488,18 +498,18 @@ data FileInfo = FileInfo { _fiId        :: SlackId
                          , _fiIs_public            :: Bool
                          , _fiPublic_url_shared    :: Bool
                          , _fiDisplay_as_bot       :: Bool
-                         , _fiChannels             :: [SlackId]
-                         , _fiGroups               :: [SlackId]
-                         , _fiIms                  :: [SlackId]
+                         , _fiChannels             :: [ChannelId]
+                         , _fiGroups               :: [ChannelId]
+                         , _fiIms                  :: [UserId]
                          , _fiIs_Starred           :: Bool
-                         , _fiPinned_to            :: [SlackId]
+                         , _fiPinned_to            :: [ChannelId]
                          }
                          deriving (Generic, Show)
 
 instance FromJSON FileInfo where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_fi" }
 
-data EditInfo = EditInfo { _eiUser :: SlackId
+data EditInfo = EditInfo { _eiUser :: UserId
                          , _eiTs   :: String
                          }
                 deriving (Generic, Show)
@@ -509,20 +519,20 @@ instance FromJSON EditInfo where
 
 data Reaction = Reaction { _rName  :: String
                          , _rCount :: Int
-                         , _rUsers :: [SlackId]
+                         , _rUsers :: [UserId]
                          }
                 deriving (Generic, Show)
 
 instance FromJSON Reaction where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_r" }
 
-data MessageInfo = MessageInfo { _mChannelId :: SlackId
-                               , _mUser      :: SlackId
+data MessageInfo = MessageInfo { _mChannelId :: ChannelId
+                               , _mUser      :: UserId
                                , _mText      :: String
                                , _mTs        :: String
                                , _mEdited    :: Maybe EditInfo
                                , _mIsStarred :: Maybe Bool
-                               , _mPinned_to :: Maybe [SlackId]
+                               , _mPinned_to :: Maybe [ChannelId]
                                , _mReactions :: Maybe [Reaction]
                                }
                  deriving (Generic, Show)

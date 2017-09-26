@@ -5,8 +5,11 @@
 
 module Network.Slack.Client where
 
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async
+import Control.Concurrent.STM
 import Control.Lens
-import Control.Monad (forever)
+import Control.Monad (forever, void)
 import Data.Aeson
 import qualified Data.Aeson.Types as AT
 import qualified Data.Text as T
@@ -34,35 +37,48 @@ data SlackTeam = SlackTeam { id     :: String
 
 instance FromJSON SlackTeam
 
-data SlackUser = SlackUser { id   :: String
+data SlackUser = SlackUser { id   :: UserId
                            , name :: String
                            }
                  deriving (Eq, Show, Generic)
 
 instance FromJSON SlackUser
 
-data Typing = Typing { _tId        :: Int
+data Typing = Typing { _tId        :: Integer
                      , _tType      :: String
-                     , _tChannelId :: SlackId
+                     , _tChannelId :: ChannelId
                      }
               deriving (Eq, Show, Generic)
 
 instance ToJSON Typing where
   toJSON (Typing i t c) = object ["id" AT..= i, "type" AT..= t, "channel" AT..= c]
 
-handleEvent :: SlackEvent -> ClientApp ()
-handleEvent Message { _seChannelId = chan } connection = do
-  sendTextData connection $ encode typingMsg
-  where typingMsg = Typing { _tId = 1, _tType = "typing", _tChannelId = chan }
-handleEvent event _ = do
+sendTyping :: ChannelId -> Integer -> Connection -> IO ()
+sendTyping chan count connection = sendTextData connection $ encode typingMsg
+  where typingMsg = Typing { _tId = count, _tType = "typing", _tChannelId = chan }
+
+incCounter :: TVar Integer -> IO Integer
+incCounter counter = atomically $ do
+  c <- readTVar counter
+  writeTVar counter (c + 1)
+  return c
+
+reply :: SlackEvent -> TVar Integer -> Connection -> IO ()
+reply Message { _seChannelId = chan, _seText = txt } counter connection =
+  incCounter counter >>= \c -> sendTyping chan c connection >> threadDelay 500000
+
+handleEvent :: SlackEvent -> TVar Integer -> Connection -> IO ()
+handleEvent event@Message { _seChannelId = chan } counter connection = do
+  reply event counter connection
+handleEvent event _ _ = do
   putStrLn $ show event
 
-client :: ClientApp ()
-client connection = forever $ do
+client :: TVar Integer -> Connection -> IO ()
+client counter connection = forever $ do
   message <- receiveData connection
   case (eitherDecode message :: Either String SlackEvent) of
     Left _  -> return ()
-    Right m -> handleEvent m connection
+    Right m -> void $ async (handleEvent m counter connection)
 
 makeWSSClient :: SlackAuthResponse -> IO ()
 makeWSSClient SlackAuthResponse { url } = do
@@ -71,7 +87,8 @@ makeWSSClient SlackAuthResponse { url } = do
       let Just host = uriRegName <$> (uriAuthority uri)
           port = 443
           path = uriPath uri
-      runSecureClient host port path client
+      counter <- atomically $ newTVar 0
+      runSecureClient host port path (client counter)
     Nothing ->
       return ()
 

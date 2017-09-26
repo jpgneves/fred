@@ -19,11 +19,13 @@ library
                      , Network.Slack.RTM.Events
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
+                     , async
                      , aeson
                      , bytestring
                      , containers
                      , lens
                      , network-uri
+                     , stm
                      , text
                      , websockets
                      , wreq
