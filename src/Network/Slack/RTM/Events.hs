@@ -55,6 +55,9 @@ data SlackEvent = AccountsChanged
                 | EmojiRemove { _seNames   :: [String]
                               , _seEventTs :: String
                               }
+                | SlackError { _seCode    :: Int
+                             , _seMessage :: String
+                             }
                 | FileChange { _seFile :: FileInfo }
                 | Goodbye
                 | GroupArchive { _seChannelId :: SlackId }
@@ -105,6 +108,7 @@ instance FromJSON SlackEvent where
                                           "add"    -> EmojiAdd <$> o .: "name" <*> o .: "value" <*> o .: "event_ts"
                                           "remove" -> EmojiRemove <$> o .: "names" <*> o .: "event_ts"
                                           _        -> fail $ "Unknown emoji_changed subtype: " ++ subtype
+          "error"                   -> SlackError <$> o .: "code" <*> o .: "msg"
           "file_change"             -> FileChange <$> o .: "file"
           "goodbye"                 -> return Goodbye
           "group_archive"           -> GroupArchive <$> o .: "channel"
