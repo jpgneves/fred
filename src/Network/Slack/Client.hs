@@ -42,7 +42,7 @@ instance FromJSON SlackUser
 client :: ClientApp ()
 client connection = do
   message <- receiveData connection
-  putStrLn $ show $ (decode message :: Maybe SlackEvent)
+  putStrLn $ show $ (eitherDecode message :: Either String SlackEvent)
   sendClose connection (T.pack "Bye!")
 
 makeWSSClient :: SlackAuthResponse -> IO ()

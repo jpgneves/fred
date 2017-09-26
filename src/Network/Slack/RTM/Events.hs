@@ -127,8 +127,8 @@ data SlackEvent = AccountsChanged
                              , _seIcons    :: [String]
                              }
                 | ChannelArchiveMessage { _seTs   :: String
-                                        , _seText :: String
                                         , _seUser :: SlackId
+                                        , _seText :: String
                                         }
                 | ChannelJoinMessage { _seTs      :: String
                                      , _seUser    :: SlackId
@@ -163,7 +163,7 @@ data SlackEvent = AccountsChanged
                                      , _seUser    :: SlackId
                                      , _seText    :: String
                                      , _seFile    :: FileInfo
-                                     , _seComment :: String
+                                     , _seComment :: Object
                                      }
                 | FileMentionMessage { _seTs   :: String
                                      , _seUser :: SlackId
@@ -242,7 +242,7 @@ data SlackEvent = AccountsChanged
                                         , _seUser        :: SlackId
                                         , _seChannelId   :: SlackId
                                         , _seEventTs     :: String
-                                        , _seAttachments :: [Attachment]
+                                        , _seAttachments :: [Object]
                                         }
                 | UnpinnedItemMessage { _seTs        :: String
                                       , _seUser      :: SlackId
@@ -304,26 +304,76 @@ instance FromJSON SlackEvent where
                                        <*> o .: "channel_type"
                                        <*> o .: "inviter"
           "member_left_channel"     -> MemberLeftChannel <$> o .: "user" <*> o .: "channel" <*> o .: "channel_type"
-          "message"                 -> do
-            subtype <- (o .: "subtype" :: Parser String)
-            case subtype of
-              "bot_message"     -> BotMessage
-                                   <$> o .: "ts"
-                                   <*> o .: "text"
-                                   <*> o .: "bot_id"
-                                   <*> o .: "username"
-                                   <*> o .: "icons"
-              "channel_archive" -> ChannelArchiveMessage
-                                   <$> o .: "ts"
-                                   <*> o .: "text"
-                                   <*> o .: "user"
-              "channel_join"    -> ChannelJoinMessage
-                                   <$> o .: "ts"
-                                   <*> o .: "text"
-                                   <*> o .: "user"
-                                   <*> o .: "inviter"
-              _                 -> fail $ "Unknown message subtype: " ++ subtype
+          "message"                 -> parseMessageEvent o
           _                         -> fail $ "Unknown event type: " ++ eventType
+
+
+parseMessageEvent :: Object -> Parser SlackEvent
+parseMessageEvent o = do
+  subtype <- (o .: "subtype" :: Parser String)
+  case subtype of
+    "bot_message"       -> BotMessage
+                           <$> o .: "ts"
+                           <*> o .: "text"
+                           <*> o .: "bot_id"
+                           <*> o .: "username"
+                           <*> o .: "icons"
+    "channel_archive"   -> ChannelArchiveMessage
+                           <$> o .: "ts"
+                           <*> o .: "user"
+                           <*> o .: "text"
+    "channel_join"      -> ChannelJoinMessage
+                           <$> o .: "ts"
+                           <*> o .: "text"
+                           <*> o .: "user"
+                           <*> o .: "inviter"
+    "channel_leave"     -> ChannelLeaveMessage
+                           <$> o .: "ts"
+                           <*> o .: "user"
+                           <*> o .: "text"
+    "channel_name"      -> ChannelNameMessage
+                           <$> o .: "ts"
+                           <*> o .: "user"
+                           <*> o .: "text"
+                           <*> o .: "old_name"
+                           <*> o .: "name"
+    "channel_purpose"   -> ChannelPurposeMessage
+                           <$> o .: "ts"
+                           <*> o .: "user"
+                           <*> o .: "text"
+                           <*> o .: "purpose"
+    "channel_topic"     -> ChannelTopicMessage
+                           <$> o .: "ts"
+                           <*> o .: "user"
+                           <*> o .: "text"
+                           <*> o .: "topic"
+    "channel_unarchive" -> ChannelUnarchiveMessage
+                           <$> o .: "ts"
+                           <*> o .: "user"
+                           <*> o .: "text"
+    "file_comment"      -> FileCommentMessage
+                           <$> o .: "ts"
+                           <*> o .: "user"
+                           <*> o .: "text"
+                           <*> o .: "file"
+                           <*> o .: "comment"
+    "file_mention"      -> undefined
+    "filed_share"       -> undefined
+    "group_archive"     -> undefined
+    "group_join"        -> undefined
+    "group_leave"       -> undefined
+    "group_name"        -> undefined
+    "group_purpose"     -> undefined
+    "group_topic"       -> undefined
+    "group_unarchive"   -> undefined
+    "me_message"        -> undefined
+    "message_changed"   -> undefined
+    "message_deleted"   -> undefined
+    "message_replied"   -> undefined
+    "pinned_item"       -> undefined
+    "reply_broadcast"   -> undefined
+    "unpinned_item"     -> undefined
+    _                   -> fail $ "Unknown message subtype: " ++ subtype
 
 data BotInfo = BotInfo { _biId    :: SlackId
                        , _biAppId :: SlackId
@@ -429,21 +479,3 @@ data MessageInfo = MessageInfo { _mChannelId :: SlackId
 
 instance FromJSON MessageInfo where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_m" }
-
-data Attachment = Attachment { _aFromUrl :: Maybe String
-                             , _aFallback :: String
-                             , _aTs :: String
-                             , _aAuthorSubname :: String
-                             , _aChannelId :: Maybe SlackId
-                             , _aChannelName :: Maybe String
-                             , _aText :: String
-                             , _aAuthorLink :: Maybe String
-                             , _aAuthorIcon :: Maybe String
-                             , _aId :: Int
-                             , _aFooter :: Maybe String
-                             , _aMrkdwnIn :: Maybe [String]
-                             }
-                  deriving (Generic, Show)
-
-instance FromJSON Attachment where
-  parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = dropPrefix "_a" }
