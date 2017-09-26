@@ -11,9 +11,10 @@ import GHC.Generics
 dropPrefix :: String -> String -> String
 dropPrefix prefix = (drop (length prefix)) . (map toLower) -- For sure there's a better way :)
 
-newtype SlackId = SlackId String deriving (Generic, Show)
+newtype SlackId = SlackId String deriving (Eq, Generic, Show)
 
 instance FromJSON SlackId
+instance ToJSON SlackId
 
 data ItemType = Channel
               | Group
