@@ -3,7 +3,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Network.Slack.Client where
+module Network.Slack.Client ( Network.Slack.RTM.Events.SlackEvent (..)
+                            , connect
+                            )
+where
 
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async
@@ -90,28 +93,36 @@ reply Message { _seChannelId = chan, _seText = txt } counter connection =
               >> incCounter counter
               >>= \c -> sendMessage chan c reply connection
 
-handleEvent :: SlackEvent -> TVar Integer -> Connection -> IO ()
-handleEvent event@Message { _seChannelId = chan } counter connection = do
-  reply event counter connection
-handleEvent event _ _ = do
+handleEvent :: (SlackEvent -> IO (Maybe String)) -> SlackEvent -> TVar Integer -> Connection -> IO ()
+handleEvent eventHandler event@Message { _seChannelId = chan } counter connection = do
+  mReply <- eventHandler event
+  case mReply of
+    Just reply ->
+      incCounter counter >>=
+      \c -> sendTyping chan c connection >>
+            threadDelay 250000 >>
+            incCounter counter >>=
+            \c -> sendMessage chan c reply connection
+    Nothing -> return ()
+handleEvent _ event _ _ = do
   putStrLn $ show event
 
-client :: TVar Integer -> Connection -> IO ()
-client counter connection = forever $ do
+client :: (SlackEvent -> IO (Maybe String)) -> TVar Integer -> Connection -> IO ()
+client eventHandler counter connection = forever $ do
   message <- receiveData connection
   case (eitherDecode message :: Either String SlackEvent) of
     Left _  -> return ()
-    Right m -> void $ async (handleEvent m counter connection)
+    Right m -> void $ async $ handleEvent eventHandler m counter connection
 
-makeWSSClient :: SlackAuthResponse -> IO ()
-makeWSSClient SlackAuthResponse { url } = do
+makeWSSClient :: SlackAuthResponse -> (SlackEvent -> IO (Maybe String)) -> IO ()
+makeWSSClient SlackAuthResponse { url } eventHandler = do
   case parseURI url of
     Just uri -> do
       let Just host = uriRegName <$> (uriAuthority uri)
           port = 443
           path = uriPath uri
-      counter <- atomically $ newTVar 0
-      runSecureClient host port path (client counter)
+      counter <- atomically $ newTVar 1
+      runSecureClient host port path (client eventHandler counter)
     Nothing ->
       return ()
 
@@ -121,9 +132,9 @@ authenticate apiKey = do
   r <- getWith opts "http://slack.com/api/rtm.connect"
   return $ decode =<< (r ^? responseBody)
 
-connect :: String -> IO ()
-connect apiKey = do
+connect :: (SlackEvent -> IO (Maybe String)) -> String -> IO ()
+connect eventHandler apiKey = do
   result <- authenticate apiKey
   case result of
-    Just a -> makeWSSClient a
+    Just a -> makeWSSClient a eventHandler
     Nothing -> fail $ "Failed to authenticate to Slack."

@@ -6,7 +6,6 @@ import Network.Slack.Client
 import Options.Applicative
 
 data Flags = Flags { apiKey :: String
-                   , name   :: String
                    }
              deriving (Show)
 
@@ -16,16 +15,13 @@ parseFlags = Flags
                  <> metavar "APIKEY"
                  <> help "Slack API Key"
                 )
-  <*> strOption (long "name"
-                 <> metavar "NAME"
-                 <> showDefault
-                 <> value "fred"
-                 <> help "Display name for the bot"
-                )
+
+messageHandler :: SlackEvent -> IO (Maybe String)
+messageHandler (Message _ _ _ _ _ _) = return $ Just "Yo"
 
 start :: Flags -> IO ()
-start (Flags apiKey name) = do
-  connect apiKey
+start (Flags apiKey) = do
+  connect messageHandler apiKey
 
 main :: IO ()
 main = execParser opts >>= start
